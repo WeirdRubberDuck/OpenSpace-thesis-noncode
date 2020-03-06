@@ -1,0 +1,17 @@
+// For debug
+// Will overwrite any rotation in given by navigation states! 
+glm::dquat RotationInterpolator::lookAtInterpolator(double u) {
+    // Look at start node until tStart, then turn to look at end node from tEnd
+    double tStart = 0.15;
+    double tEnd = 0.7;
+    double uNew = helpers::shiftAndScale(u, tStart, tEnd);
+    uNew = ghoul::cubicEaseInOut(uNew);
+
+    glm::dvec3 startNodePos = sceneGraphNode(_start.referenceNode)->worldPosition();
+    glm::dvec3 endNodePos = sceneGraphNode(_end.referenceNode)->worldPosition();
+    glm::dvec3 lookAtPos = interpolation::linear(uNew, startNodePos, endNodePos);
+
+    glm::dvec3 startUpVec = _start.rotation * glm::dvec3(0.0, 1.0, 0.0);
+    
+    return helpers::getLookAtQuaternion(_curve->positionAt(u), lookAtPos, startUpVec);
+}

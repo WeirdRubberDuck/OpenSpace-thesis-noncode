@@ -1,0 +1,109 @@
+ // Milky way
+  var milky = {
+    Anchor: "Earth",
+    Pitch: -0.1618332862854004,
+    Position: [393664147028082400000, 868043988008968400000, 371178729619784200000],
+    ReferenceFrame: "Root",
+    Up: [-0.36321815848350525, -0.22218404710292816, 0.9048241972923279],
+    Yaw: -0.14001649618148804
+  }
+  
+var solarsystem = {
+  Anchor: "SunStar",
+  Pitch: -0.00940696056932211,
+  Position: [-7047637630976, 3723883708416, -1240300650496],
+  ReferenceFrame: "Root",
+  Up: [0.47971364855766296, 0.8700364232063293, -0.11362868547439575],
+  Yaw: 0.001860414631664753
+}
+
+
+// Some states with auto target distance, node_centeredPlace
+
+var moon_backside = {
+  Anchor: "Moon",
+  Pitch: 6.202149904765974e-11,
+  Position: [-5141444.5, -856711.9375, -160723.03125],
+  ReferenceFrame: "Moon",
+  Up: [-0.10047027468681335, 0.7298203110694885, -0.6762159466743469],
+  Yaw: 1.0380107884344625e-10
+}
+
+
+var earth_north = {
+  Anchor: "Earth",
+  Pitch: -0.00024791870964691043,
+  Position: [-3470344.5, -517960.84375, 18821212],
+  ReferenceFrame: "Earth",
+  Up: [-0.946513295173645, -0.26653406023979187, -0.1818576604127884],
+  Yaw: -0.0032020355574786663
+}
+
+var earth_italy = {
+  Anchor: "Earth",
+  Pitch: -0.00024791876785457134,
+  Position: [14672289, 3051870, 11914680],
+  ReferenceFrame: "Earth",
+  Up: [-0.6153947114944458, -0.09583038836717606, 0.7823719382286072],
+  Yaw: -0.0032020355574786663
+}
+
+var earth_japan = {
+  Anchor: "Earth",
+  Pitch: 0.0021334097255021334,
+  Position: [-11232784, 10155638, 11749149],
+  ReferenceFrame: "Earth",
+  Up: [-0.3355659246444702, -0.8473386168479919, 0.4115978479385376],
+  Yaw: 0.0018028754275292158
+}
+
+
+// Two tilted navigation states close to surface on earth
+var lahalla = {
+  Anchor: "Earth", 
+  Pitch: 1.454749584197998,
+  Position: [3317805.5, 693092.375, 5403357],
+  ReferenceFrame: "Earth",
+  Up: [-0.05042006075382233, -0.9862366318702698, 0.15746453404426575],
+  Yaw: 0.011178694665431976
+}
+
+var americanValley = {
+  Anchor: "Earth",
+  Pitch: 1.6030646562576294,
+  Position: [-1952845.875, -3651278, 4852677.5],
+  ReferenceFrame: "Earth",
+  Up:[0.15668083727359772, -0.8184645771980286, -0.5527810454368591],
+  Yaw: 0.014872883446514606
+}
+
+// NY from above
+var newyork = {
+  Anchor: "Earth",
+  Pitch: 0.001973056234419346,
+  Position: [1337566.75, -4662704, 4176226.25],
+  ReferenceFrame: "Earth",
+  Up: [-0.19380217790603638, 0.6230983734130859, 0.7577526569366455],
+  Yaw: 0.0024393906351178885
+}
+
+
+// Two opposite sides of Uranus
+var uranus1 = {
+  Anchor: "Uranus",
+  Pitch: -0.0009166287491098046,
+  Position: [48350868, 25624760, 53694276],
+  ReferenceFrame: "Uranus",
+  Up: [0.7728978991508484, -0.3517242968082428, -0.5281276702880859],
+  Yaw: 0.0012070072116330266
+}
+
+var uranus2 = {
+  Anchor: "Uranus",
+  Pitch: -0.011966039426624775,
+  Position: [-33618248, -1320660.625, -68682768],
+  ReferenceFrame: "Uranus",
+  Up: [0.8190566301345825, -0.4180944263935089, -0.39286547899246216],
+  Yaw: 0.003630835795775056
+}
+

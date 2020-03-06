@@ -1,0 +1,37 @@
+// Tried to create a sceneGraphNode from pathsegment, but I get error:
+
+
+
+
+// Create renderable
+ghoul::Dictionary rendDict;
+rendDict.setValue("Enabled", true);
+rendDict.setValue("Type", "RenderableNodeLine");
+rendDict.setValue("StartNode", "Earth");
+rendDict.setValue("EndNode", "Moon");
+rendDict.setValue("LineWidth", 5);
+//  rendDict.setValue("Opacity", 1);
+
+//  rendDict.setValue("PathSegment", this);`
+ghoul::Dictionary nodeDict;
+nodeDict.setValue("Identifier", "12237254756");
+nodeDict.setValue("Renderable", rendDict);
+
+
+//Add sceneGraphNode
+try {
+    SceneGraphNode* node = global::renderEngine.scene()->loadNode(nodeDict);
+    if (!node) {
+        LERROR("Could not load scene graph node");
+    }
+
+    global::renderEngine.scene()->initializeNode(node);
+}
+catch (const documentation::SpecificationError& e) {
+    LERROR( fmt::format("Error loading scene graph node: {}: {}",
+            e.what(), ghoul::to_string(e.result))
+    );
+}
+catch (const ghoul::RuntimeError& e) {
+    LERROR(fmt::format("Error loading scene graph node: {}", e.what()));
+}

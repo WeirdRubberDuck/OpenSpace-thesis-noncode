@@ -1,0 +1,12 @@
+return { 
+    Instructions = 
+    {
+        -- View the moon in the background, visit two of its sides and then go back to earth. 
+        -- Key features: Problematic situations for linear path, since the states causes the camera to move through the planets
+        
+        { NavigationState={Anchor="Earth",Pitch=0.882921E-2,Position={-8.226632E6,-1.596934E7,-5.319145E6},Up={-0.704841E0,0.522800E0,-0.479457E0},Yaw=-0.316156E-2} },
+        { NavigationState={Anchor="Moon",Pitch=-0.906141E-2,Position={5.427888E6,-3.928011E5,5.243726E5},Up={0.345434E-1,-0.594805E0,-0.803127E0},Yaw=-0.191732E-2} },
+        { NavigationState={Anchor="Moon",Pitch=-0.906141E-2,Position={-4.511115E6,-2.709644E6,1.482868E6},Up={0.591191E-1,-0.553174E0,-0.830965E0},Yaw=-0.191732E-2} },
+        { NavigationState={Anchor="Earth",Pitch=0.882921E-2,Position={-8.226632E6,-1.596934E7,-5.319145E6},Up={-0.704841E0,0.522800E0,-0.479457E0},Yaw=-0.316156E-2} },
+    }
+}

@@ -1,0 +1,13 @@
+return { 
+    Instructions = 
+    {
+        { Target="Moon" }, 
+        { Target="Earth", Position={1358447.50, -4717340.50, 4227006.00} }, 
+        { Target="Mars", Duration=10 }, 
+        { Duration=20, NavigationState={Anchor="Earth",Position={8.298554E6,-1.920038E7,1.607127E7},Up={-0.941571E0,-0.157958E0,0.297477E0}}},
+    }
+}
+
+-- Pos nkpg: x=53244072.0 y=15457056.0
+-- NYC LAT LONG 40.730610, -73.935242, 100000
+-- NYC POs: {x=1358447.50 y=-4717340.50 z=4227006.00 }

@@ -1,0 +1,28 @@
+-- THIS IS A TEST ASSET CREATED FOR EXPLORING VISUALIZATION OF THE CAMERA PATH 14 NOV 2019
+-- It does not work to draw the renderable trail like this!
+
+-- Adds the default scene , without this the scene graph is empty
+asset.require('./default')
+
+local assetHelper = asset.require('util/asset_helper')
+--local transforms = asset.require('./transforms') --This was used in voyager example 
+
+local trailOfCamera = {
+    Identifier = "CameraTrail",
+    Parent = transforms.PlutoBarycenterAccurate.Identifier, --not sure what this is
+    Renderable = {
+        Type = "RenderableTrail", --See comments in log for comparison of different renderableTrails
+        Translation = {
+            Type = "SpiceTranslation",
+            Target = "CAMERA", --just testing..
+            Observer = "ROOT"
+        },
+        Color = { 1.0, 0.8, 0.4 },
+        EnableFade = false,
+        Rendering = "Lines"
+    }
+}
+
+--Init, deinit and export. This can be done in separate functions if necessary 
+assetHelper.registerSceneGraphNodesAndExport(asset, { trailOfCamera })
+

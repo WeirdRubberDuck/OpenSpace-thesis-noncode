@@ -1,0 +1,51 @@
+// A TOO SIMPLE CLASS! UNSUCCESSFUL TRY WHICH IS NOT INCLUDED TO SOLUTION
+
+class RetargetLinearCurve : public PathCurve {
+public: 
+    RetargetLinearCurve(CameraState& start, CameraState& end);
+    glm::dvec3 interpolate(double t);
+};
+
+
+// TODO: Add check for if we are allowed to change end state
+RetargetLinearCurve::RetargetLinearCurve(CameraState& start, CameraState& end)
+{
+    // Move out
+    glm::dvec3 startNodePos = sceneGraphNode(start.referenceNode)->worldPosition();
+    glm::dvec3 startDirection = start.position - startNodePos;
+
+    _points.push_back(start.position);
+    _points.push_back(start.position + 1.5 * startDirection);
+
+    // TODO: Handle special cases or add smoother turn here
+
+
+    // Calculate end position
+    const SceneGraphNode* endNode = sceneGraphNode(end.referenceNode);
+
+    glm::dvec3 nodeEndPos = endNode->worldPosition();
+    glm::dvec3 targetToPrevVector = _points.back() - nodeEndPos;
+
+    double height = 2 * endNode->boundingSphere();
+    double radius = static_cast<double>(endNode->boundingSphere());
+
+    // move target position out from surface, along vector to camera
+    glm::dvec3 endPos = nodeEndPos + glm::normalize(targetToPrevVector) * (radius + height);
+
+    // TODO: Fix duration so we dont have to add this point
+    _points.push_back(endPos + targetToPrevVector);
+
+    _points.push_back(endPos);
+}
+
+glm::dvec3 RetargetLinearCurve::interpolate(double t) {
+    return interpolation::piecewiseLinear(t, _points);
+}
+
+
+//rotation with slerp
+ case RetargetLinear:
+        tRot = easingfunctions::cubicEaseInOut(t);
+        tRot = helpers::shiftAndScale(tRot, 0.3, 0.8);
+        return glm::slerp(_start.rotation, _end.rotation, tRot);
+        break;

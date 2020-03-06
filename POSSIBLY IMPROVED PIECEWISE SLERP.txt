@@ -1,0 +1,48 @@
+POOSIBLY IMPROVED SLERP ROTATION
+
+
+// Interpolate between a number of keyframes for orientation using SLERP
+const glm::dquat PathSegment::piecewiseSlerpRotation(double t) const {
+    // breakpoints for subintervals, representing when we should start / stop looking at the targets
+    const double t1 = 0.3;
+    const double t2 = 0.7; // TODO: these should probably be based on distance
+    std::vector<double> times{ 0.0, t1, t2, 1.0 };
+
+    glm::dvec3 startNodePos = sceneGraphNode(_start.referenceNode)->worldPosition();
+    glm::dvec3 endNodePos = sceneGraphNode(_end.referenceNode)->worldPosition();
+
+    glm::dvec3 startUpVec = _start.rotation * glm::dvec3(0.0, 1.0, 0.0);
+    glm::dvec3 endUpVec = _end.rotation * glm::dvec3(0.0, 1.0, 0.0);
+
+    // interpolate up vectors over the entire motion to compute target up vector
+    double easedT = ghoul::sineEaseInOut(t); // TODO: investigate other functions
+    glm::dvec3 up = interpolation::linear(easedT, startUpVec, endUpVec);
+
+    glm::dquat lookAtStartQ =
+        helpers::getLookAtQuaternion(getPositionAt(t), startNodePos, up);
+
+    glm::dquat lookAtEndQ =
+        helpers::getLookAtQuaternion(getPositionAt(t), endNodePos, up);
+
+    std::vector<glm::dquat> keyframes{ 
+        _start.rotation, 
+        lookAtStartQ, 
+        lookAtEndQ, 
+        _end.rotation 
+    };
+
+    ghoul_assert(keyframes.size() == times.size(), "Must have one time value per keyframe.");
+
+    // Find the current segment and compute interpolation
+    glm::dquat result;
+    for (int i = 0; i < keyframes.size() - 1; ++i) {
+        if (t <= times[i + 1]) {
+            double tScaled = (t - times[i]) / (times[i + 1] - times[i]);
+            tScaled = ghoul::quadraticEaseInOut(tScaled);
+            result = glm::slerp(keyframes[i], keyframes[i + 1], tScaled);
+            break;
+        }
+    }
+
+    return result;
+}

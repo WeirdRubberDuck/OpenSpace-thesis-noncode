@@ -1,0 +1,123 @@
+
+// Handle most cases with a single segment cubic bezier. 
+DifferentAnchorsCurve::DifferentAnchorsCurve(CameraState& start, CameraState& end) {
+    double startNodeRadius = sceneGraphNode(start.referenceNode)->boundingSphere();
+    double endNodeRadius = sceneGraphNode(end.referenceNode)->boundingSphere();
+    glm::dvec3 startNodePos = sceneGraphNode(start.referenceNode)->worldPosition();
+    glm::dvec3 endNodePos = sceneGraphNode(end.referenceNode)->worldPosition();
+    glm::dvec3 startNodeToStartPos = start.position - startNodePos;
+    glm::dvec3 endNodeToEndPos = end.position - endNodePos;
+    glm::dvec3 startPosToEndPos = end.position - start.position;
+
+    //TODO: Find value that matches 
+    double kernel = 5.0; //times node radius
+    // Cosider relation to node only if it is close enough
+    bool CONSIDER_START = length(startNodeToStartPos) < kernel * startNodeRadius;
+    bool CONSIDER_END = length(endNodeToEndPos) < kernel * endNodeRadius;
+
+    _points.push_back(start.position);
+
+    // Go away from start node
+    if (CONSIDER_START && !CONSIDER_END) {
+        double orthogonalDist = 0.3 * length(startPosToEndPos);
+        double outDist = 0.3 * orthogonalDist + 3.0 * kernel * startNodeRadius;
+
+        glm::dvec3 out = outDist * normalize(startNodeToStartPos);
+        glm::dvec3 parallell = glm::proj(startPosToEndPos, out);
+        glm::dvec3 othogonalDir = normalize(startPosToEndPos - parallell);
+
+        _points.push_back(startNodePos + out);
+
+        // if end is on oposite hemisphere than start
+        if (glm::dot(parallell, startPosToEndPos) > 0.0) {
+            LINFO(fmt::format("Leaving {} and going past it", start.referenceNode));
+            _points.push_back(endNodePos + orthogonalDist * othogonalDir); // go beside node
+        }
+        else {
+            //same side of node
+            LINFO(fmt::format("Leaving {}", start.referenceNode));
+            _points.push_back(startNodePos + outDist  * out); 
+        }
+    }
+
+    // Go to end node from far 
+    else if (!CONSIDER_START && CONSIDER_END) {
+        //set start tangent to match end state and end node 
+        
+        double orthogonalDist = 0.3 * length(startPosToEndPos);
+        double outDist = 0.3 * orthogonalDist + 3.0 * kernel * endNodeRadius;
+
+        glm::dvec3 out =  normalize(endNodeToEndPos);
+        glm::dvec3 parallell = glm::proj(-startPosToEndPos, out);
+        glm::dvec3 othogonalDir = normalize(-startPosToEndPos - parallell);
+
+        // if start is on oposite hemisphere than end
+        if (glm::dot(parallell, -startPosToEndPos) < 0.0) {
+            LINFO(fmt::format("Approching {} backsside from space", end.referenceNode));
+            _points.push_back(endNodePos + orthogonalDist * othogonalDir); // approach beside node
+        }
+        else {
+            //same side of node
+            LINFO(fmt::format("Approching {} from space", end.referenceNode));
+            _points.push_back(endNodePos + outDist * out);
+        }
+
+        _points.push_back(endNodePos + outDist * out);
+    }
+
+    // Not close to any node, free in space
+    else if (!CONSIDER_START && !CONSIDER_END) {
+        // Just cosider camera relations
+        // For now, use linear
+        _points.push_back(start.position);
+        _points.push_back(end.position);
+        LINFO("Far from both start and end, using temporary linear shape");
+    }
+
+    // This is the bezier3 case but solved differently
+    else if (CONSIDER_START && CONSIDER_END) {
+        LINFO(fmt::format("Going from {} to {}", start.referenceNode, end.referenceNode));
+
+        double orthogonalDist = 0.3 * length(startPosToEndPos);
+        double outDistStart =  3.0 * kernel * startNodeRadius;
+        double outDistEnd = 3.0 * kernel * endNodeRadius;
+
+        glm::dvec3 outStart = normalize(startNodeToStartPos);
+        glm::dvec3 parallellStart = glm::proj(startPosToEndPos, outStart);
+        glm::dvec3 othogonalDirStart = normalize(startPosToEndPos - parallellStart);
+
+        glm::dvec3 outEnd = normalize(endNodeToEndPos);
+        glm::dvec3 parallellEnd = glm::proj(-startPosToEndPos, outEnd);
+        glm::dvec3 othogonalDirEnd = normalize(-startPosToEndPos - parallellEnd);
+
+        glm::dvec3 startTangent = outDistStart * outStart;
+        glm::dvec3 endTangent = outDistEnd * outEnd;
+
+        // Target is on other side of start node
+        if (glm::dot(parallellStart, outStart) < 0.0) {
+            startTangent += orthogonalDist * othogonalDirStart;
+        }
+        // Target is behind end node
+        if (glm::dot(parallellEnd, outEnd) < 0.0) {
+            endTangent += orthogonalDist * othogonalDirEnd;
+        }
+        // Has to rotate to ~oposite direction
+        if (glm::dot(outEnd, outStart) < - 0.8) {
+            // TODO: make it match slerp for most common generated cases
+            startTangent += orthogonalDist * normalize(startPosToEndPos);
+            startTangent -= orthogonalDist * (othogonalDirEnd + 2.0 * othogonalDirStart) / 3.0;
+
+            endTangent += orthogonalDist * normalize(-startPosToEndPos);
+            endTangent -= orthogonalDist * (2.0 * othogonalDirEnd + othogonalDirStart) / 3.0;
+        }
+        
+        _points.push_back(startNodePos + startTangent);
+        _points.push_back(endNodePos + endTangent );
+    }
+    
+    _points.push_back(end.position);
+}
+
+glm::dvec3 DifferentAnchorsCurve::valueAt(double t) {
+    return interpolation::cubicBezier(t, _points[0], _points[1], _points[2], _points[3]);
+}

@@ -1,0 +1,57 @@
+local assetHelper = asset.require('util/asset_helper')
+local sunTransforms = asset.require('scene/solarsystem/sun/transforms')
+local earthAsset = asset.require('scene/solarsystem/planets/earth/earth')
+
+local NCMSGlobeLocation1 = {
+    Identifier = "NCMSGlobeLocation1",
+    Parent = earthAsset.Earth.Identifier,
+    Transform = {
+        Translation = {
+            Type = "GlobeTranslation",
+            Globe = earthAsset.Earth.Identifier,
+            Longitude = -78.639340,
+            Latitude = 35.782287,
+            Altitude = 1800.0, --Adding altitude stops the camera from going into the ground
+        }
+    },
+    GUI = {
+        Name = "NCMS Globe Location",
+        Path = "/NCMS/Bookmarks"
+    }
+}
+
+
+
+local Aldebaran = {
+    Identifier = "Aldebaran",
+    Parent = sunTransforms.SolarSystemBarycenter.Identifier,
+    Transform = {
+        Translation = {
+            Type = "StaticTranslation",
+            Position = {-5.7787644E17,-9.797026E15,-2.131956E17}
+        },
+        Scale = {
+            Type = "StaticScale",
+            Scale = 4.0E10; --to give the sphere size
+        }
+    },
+    Renderable = {
+        Type = "RenderableSphericalGrid",
+        Enabled = true,
+        LineWidth = 2.0,
+        GridColor = { 0.8, 0.4, 0.4, 0.25},
+	},
+    GUI = {
+        Name = "Aldebaran",
+        Path = "/DMNS/Location Bookmarks"
+    }
+}
+
+assetHelper.registerSceneGraphNodesAndExport(asset, {
+    NCMSGlobeLocation1,
+    Aldebaran
+})
+
+-- asset.onInitialize(function ()
+
+-- end)
