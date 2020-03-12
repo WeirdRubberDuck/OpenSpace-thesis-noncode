@@ -1,0 +1,84 @@
+    double getCatmullT(double t, glm::dvec3 p0, glm::dvec3 p1, double alpha )
+    {
+        float a = glm::pow((p1.x - p0.x), 2.0f) + glm::pow((p1.y - p0.y), 2.0f) + glm::pow((p1.z - p0.z), 2.0f);
+        float b = glm::pow(a, 0.5f);
+        float c = glm::pow(b, alpha);
+
+        return (c + t);
+    }
+ // Centripetal version alpha = 0, uniform for alpha = 0.5 and
+    glm::dvec3 catmullRom(double t, double alpha, const glm::dvec3 &p0, const glm::dvec3 &p1,
+        const glm::dvec3 &p2, const glm::dvec3 &p3) 
+    {
+        double t0 = 0;
+        double t1 = helpers::getCatmullT(0, p0, p1, alpha);
+        double t2 = helpers::getCatmullT(t1, p1, p2, alpha);
+        double t3 = helpers::getCatmullT(t2, p2, p3, alpha);
+
+        // safety check for repeated points
+        if (t2 < Epsilon)    t2 = 1.0f;
+        if (t1 < Epsilon)    t1 = t2;
+        if (t3 < Epsilon)    t3 = t2;
+
+        // let t be an interpolated value between t1 and t2
+        t = (1.0 - t) * t1 + t * t2;
+        LINFO("t: " + std::to_string(t) + " t1: " + std::to_string(t1) + " t2: " + std::to_string(t2) + " t3: " + std::to_string(t3));
+
+        glm::dvec3 A1 = (t1 - t) / (t1 - t0)*p0 + (t - t0) / (t1 - t0)*p1;
+        glm::dvec3 A2 = (t2 - t) / (t2 - t1)*p1 + (t - t1) / (t2 - t1)*p2;
+        glm::dvec3 A3 = (t3 - t) / (t3 - t2)*p2 + (t - t2) / (t3 - t2)*p3;
+
+        glm::dvec3 B1 = (t2 - t) / (t2 - t0)*A1 + (t - t0) / (t2 - t0)*A2;
+        glm::dvec3 B2 = (t3 - t) / (t3 - t1)*A2 + (t - t1) / (t3 - t1)*A3;
+
+        return (t2 - t) / (t2 - t1)*B1 + (t - t1) / (t2 - t1)*B2;
+    }
+
+
+//Passes through all control points but first and last. Needs n > 3 control points
+CatmullRomCurve::CatmullRomCurve(CameraState& start, CameraState& end) {
+    
+    _points.push_back(start.position); // set start tangent to 0
+    _points.push_back(start.position); // first knot
+
+    // CALCULATE CONDITIONS
+    // TODO: Move calculations of conditions somewhere all curves can access them
+    glm::dvec3 startNodePos = sceneGraphNode(start.referenceNode)->worldPosition();
+    glm::dvec3 endNodePos = sceneGraphNode(end.referenceNode)->worldPosition();
+
+    glm::dvec3 startDirection = start.position - startNodePos;
+    glm::dvec3 endDirection = end.position - endNodePos;
+    glm::dvec3 nodeDiff = endNodePos - startNodePos;
+
+    double cosStartAngle = glm::dot(normalize(startDirection), normalize(nodeDiff));
+    bool TARGET_HIDDEN = cosStartAngle < -0.8;
+    bool TARGET_IN_OPPOSITE_DIRECTION = cosStartAngle > 0.8;
+
+    // IF VERY SHORT DIST OR PAUS..
+    // ENDSTATE ON BACKSIDE
+
+   
+    if ( TARGET_HIDDEN ) { 
+        // Find direction orthogonal to end
+        glm::dvec3 parallell = glm::dot(startDirection, normalize(nodeDiff)) * normalize(nodeDiff);
+        glm::dvec3 orthogonal = normalize( startDirection - parallell );
+
+        // Move outward
+       // _points.push_back(start.position + 0.2 * startDirection);
+
+        //Move through point beside node
+        double radius = sceneGraphNode(start.referenceNode)->boundingSphere();
+        _points.push_back( startNodePos + 4.0*radius*orthogonal );
+
+        //Add point to handle the tangent?
+       // _points.push_back( startNodePos + 5.0*radius*orthogonal + 2.0*radius*normalize(parallell) );
+     
+    }
+
+    _points.push_back(end.position); // Last knot
+    _points.push_back(end.position); // Set end tangent to 0
+}
+
+glm::dvec3 CatmullRomCurve::interpolate(double t) {
+    return interpolation::piecewiseCatmullRom( t, _points, 0.9);
+}
