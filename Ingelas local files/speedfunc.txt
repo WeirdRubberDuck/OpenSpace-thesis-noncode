@@ -1,0 +1,53 @@
+
+void PathSegment::setDuration(double d) {
+    // rescale speed function parameters 
+   // _speedFunction.threshold *= (d / _duration);
+   // _speedFunction.integratedSum *= (d / _duration);
+
+    _duration = d;
+    //_speedFunction = SpeedFunction(_duration, 0.5); //TEMPORARY UGLY FIX!
+   
+    double startNodeRadius = sceneGraphNode(_start.referenceNode)->boundingSphere();
+    double endNodeRadius = sceneGraphNode(_end.referenceNode)->boundingSphere();
+    double threshold = endNodeRadius / (startNodeRadius + endNodeRadius);
+
+    _speedFunction = SpeedFunction(_duration, _speedFunction.threshold);    
+
+//or 
+
+    double startNodeRadius = sceneGraphNode(_start.referenceNode)->boundingSphere();
+    double endNodeRadius = sceneGraphNode(_end.referenceNode)->boundingSphere();
+    double dist = _curve->arcLength();
+
+    //If no bounding sphere, set to some value.
+    if (startNodeRadius < 3.0)
+        startNodeRadius += 10.0;
+    if (endNodeRadius < 3.0)
+        endNodeRadius += 10.0;
+
+    // time needed to ex. double the distance, currently only using radius
+    // Distance traversed for cubic ease is t^4 
+    double t1 = pow(startNodeRadius, 0.25);
+    double t2 = pow(endNodeRadius, 0.25);
+
+    double threshold = t2/(t1+t2);
+}
+
+double PathSegment::SpeedFunction::value(double t) {
+    ghoul_assert(t >= 0 && t <= 1, "Variable t out of range [0,1]");
+   
+    double speed = 1.0;
+
+    // accelerate
+    if (t < threshold) {
+        double tScaled = t / threshold;
+        speed = ghoul::cubicEaseInOut(tScaled);
+    }
+    // deaccelerate
+    else {
+        double tScaled = (t - threshold) / (1.0 - threshold);
+        speed = 1.0 - ghoul::cubicEaseInOut(tScaled);
+    }
+
+    return speed;
+}

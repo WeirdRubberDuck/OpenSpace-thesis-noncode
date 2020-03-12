@@ -1,0 +1,19 @@
+In AvoidCollisionCurve::AvoidCollisionCurve(const Waypoint& start, const Waypoint& end)
+
+
+    // Add a point to first go straight out if starting close to planet
+    double thresholdFactor = 3.0;
+    glm::dvec3 startNodePos = start.node()->worldPosition();
+    double startNodeRadius = start.node()->boundingSphere();
+    glm::dvec3 startNodeToStartPos = start.position() - startNodePos;
+
+    if (glm::length(startNodeToStartPos) < thresholdFactor * startNodeRadius) {
+        glm::dvec3 viewDir = glm::normalize(start.rotation() * glm::dvec3(0.0, 0.0, -1.0));
+        double distance = startNodeRadius;
+
+        glm::dvec3 newPos = start.position() - distance * viewDir;
+        _points.push_back(newPos);
+    }
+
+    // TODO: Add a point to approach straigt towards a specific pose near planet
+    // TODO: Calculate nice end pose if not defined end camera pose

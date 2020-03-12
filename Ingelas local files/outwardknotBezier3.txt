@@ -1,0 +1,11 @@
+//go outward knot in bezier3 
+
+// Start by going out to a given distance
+    double knotDistance = 2.0 * startNodeRadius;
+    glm::dvec3 outVec = knotDistance/3.0 * normalize(startNodeToStartPos);
+
+    _points.push_back(start.position); //knot
+    _points.push_back(start.position + 1.0 * outVec);
+    _points.push_back(start.position + 2.0 * outVec);
+    _points.push_back(start.position + 3.0 * outVec); //knot
+    _points.push_back(start.position + 4.0 * outVec);

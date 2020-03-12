@@ -1,0 +1,250 @@
+//BEZIER 3.3: NOT ASSUMING WE LOOK AT PLANET FROM A DISTANCE ON THE WAY WHEN LEAVING/ARRIVING
+// requires #include <glm/gtx/intersect.hpp>
+
+Bezier3Curve::Bezier3Curve(CameraState& start, CameraState& end) {
+    //TODO try to clean up using variable for nodes
+    glm::dvec3 startNodePos = sceneGraphNode(start.referenceNode)->worldPosition();
+    glm::dvec3 endNodePos = sceneGraphNode(end.referenceNode)->worldPosition();
+    glm::dvec3 startNodeToStartPos = start.position - startNodePos;
+    glm::dvec3 endNodeToEndPos = end.position - endNodePos;
+    double startNodeRadius = sceneGraphNode(start.referenceNode)->boundingSphere();
+    double endNodeRadius = sceneGraphNode(end.referenceNode)->boundingSphere();
+
+    glm::dvec3 startNodeToEndNode = endNodePos - startNodePos;
+    glm::dvec3 startToEnd = end.position - start.position;
+    double distance = length(startToEnd);
+    
+    //TODO: make these test work...
+    // Check if start or end node boundingspheres intersect ray between start and end state
+    bool TARGET_BEHIND_STARTNODE = glm::intersectRaySphere(start.position, 
+        normalize(startNodeToStartPos), startNodePos, startNodeRadius, distance);
+    //Should we go from start or end? Use which end direction??
+    bool TARGET_BEHIND_ENDNODE = glm::intersectRaySphere(end.position,
+        normalize(endNodeToEndPos), endNodePos, endNodeRadius, distance); 
+
+    // THOUGHT: is it more interesting to know if there is a 180 turn between start and end orientation? Not always go out looking from dist
+    //TODO: check with navigation state orientation!
+    double cosStartDir = glm::dot(normalize(startNodeToStartPos), normalize(endNodeToEndPos));
+    bool TARGET_IN_OPPOSITE_DIRECTION = cosStartAngle > 0.7;
+
+    // SET CONTROL POINTS
+    _points.push_back(start.position);
+    _points.push_back(start.position + 4.0 * startNodeRadius * normalize(startNodeToStartPos));
+
+    // TODO: experiment with adding extra knot for going straight out
+
+    // Handle special conditions by adding a knot and tangents
+    if ( TARGET_BEHIND_STARTNODE )
+    {
+        // Avoid collision with startnode by going through knot on the side of it
+        glm::dvec3 parallell = glm::proj(startNodeToStartPos, startNodeToEndNode);
+        glm::dvec3 orthogonal = normalize(startNodeToStartPos - parallell);
+        double dist = 5.0 * startNodeRadius;
+        glm::dvec3 extraKnot = startNodePos + dist * orthogonal;
+        
+        _points.push_back(extraKnot - parallell);
+        _points.push_back(extraKnot); 
+        _points.push_back(extraKnot + parallell);
+    }
+
+    if (TARGET_IN_OPPOSITE_DIRECTION) {
+        // Zoom out, to get a better understanding in a 180 degree turn situation
+
+        glm::dvec3 parallell = glm::proj(startNodeToStartPos, startNodeToEndNode);
+        glm::dvec3 orthogonal = normalize(startNodeToStartPos - parallell);
+        double dist = 0.5 * length(startNodeToEndNode);
+        // Distant middle point
+        glm::dvec3 extraKnot = startNodePos + dist * normalize(parallell) + 3.0 * dist * orthogonal;
+
+        _points.push_back(extraKnot - 0.5 * dist *  normalize(parallell));
+        _points.push_back(extraKnot);
+        _points.push_back(extraKnot + 0.5 * dist *  normalize(parallell));
+    }
+    
+    if (TARGET_BEHIND_ENDNODE)
+    {
+        // Avoid collision with endnode by going through knot on the side of it
+        glm::dvec3 parallell = normalize(startNodeToEndNode) * glm::dot(endNodeToEndPos, normalize(startNodeToEndNode));
+        glm::dvec3 orthogonal = normalize(endNodeToEndPos - parallell);
+        double dist = 5.0 * endNodeRadius;
+        glm::dvec3 extraKnot = endNodePos + dist * orthogonal;
+
+        _points.push_back(extraKnot - parallell);
+        _points.push_back(extraKnot);
+        _points.push_back(extraKnot + parallell);
+    }
+
+    _points.push_back(end.position + 2.0 * endNodeRadius * normalize(endNodeToEndPos));
+    _points.push_back(end.position);
+}
+
+
+A look-at version of bezier3 to handle specialcases
+
+   //helper function
+    glm::dvec3 vectorProjection(glm::dvec3 vec, glm::dvec3 vec2) {
+        return normalize(vec2) * glm::dot(vec, normalize(vec2));
+    }
+
+Bezier3Curve::Bezier3Curve(CameraState& start, CameraState& end) {
+    // TODO: CALCULATE AND SET CONDITION BOOLS IN CURVE CONSTRUCTOR
+    glm::dvec3 startNodePos = sceneGraphNode(start.referenceNode)->worldPosition();
+    glm::dvec3 startDirection = start.position - startNodePos;
+    double startRadius = sceneGraphNode(start.referenceNode)->boundingSphere();
+    double endRadius = sceneGraphNode(end.referenceNode)->boundingSphere();
+
+    glm::dvec3 endNodePos = sceneGraphNode(end.referenceNode)->worldPosition();
+    glm::dvec3 endDirection = end.position - endNodePos;
+
+    glm::dvec3 nodePosDiff = endNodePos - startNodePos;
+    double cosStartAngle = glm::dot(normalize(startDirection), normalize(nodePosDiff));
+    double cosEndAngle = glm::dot(normalize(endDirection), normalize(nodePosDiff));
+
+    // TODO: Test with raycaster, test is dependent on start position
+    bool TARGET_BEHIND_STARTNODE = cosStartAngle < -0.8; 
+    bool TARGET_ON_BACKSIDE = cosEndAngle > 0.8;
+    bool TARGET_IN_OPPOSITE_DIRECTION = cosStartAngle > 0.7;
+
+
+    // SET CONTROL POINTS
+    _points.push_back(start.position);
+    _points.push_back(start.position + 2.0 * startRadius * normalize(startDirection));
+
+    if ( TARGET_BEHIND_STARTNODE )
+    {
+        glm::dvec3 parallell = normalize(nodePosDiff) * glm::dot(startDirection, normalize(nodePosDiff));
+        glm::dvec3 orthogonal = normalize(startDirection - parallell);
+        //Point on the side of start node
+        double dist = 5.0 * startRadius;
+        glm::dvec3 extraKnot = startNodePos + dist * orthogonal;
+        
+        _points.push_back(extraKnot - parallell);
+        _points.push_back(extraKnot); 
+        _points.push_back(extraKnot + parallell);
+    }
+
+    if (TARGET_IN_OPPOSITE_DIRECTION && ! TARGET_ON_BACKSIDE) {
+        glm::dvec3 parallell = normalize(nodePosDiff * glm::dot(startDirection, normalize(nodePosDiff)));
+        glm::dvec3 orthogonal = normalize(normalize(startDirection) - parallell);
+        // Distant middle point
+        double dist = 0.5 * length(nodePosDiff);
+        glm::dvec3 extraKnot = startNodePos - dist * parallell + 3.0 * dist * orthogonal;
+
+        _points.push_back(extraKnot - 0.5 * dist * parallell);
+        _points.push_back(extraKnot);
+        _points.push_back(extraKnot + 0.5 * dist * parallell);
+    }
+    
+    if (TARGET_ON_BACKSIDE)
+    {
+        glm::dvec3 parallell = normalize(nodePosDiff) * glm::dot(endDirection, normalize(nodePosDiff));
+        glm::dvec3 orthogonal = normalize(endDirection - parallell);
+        //Point on the side of start node
+        double dist = 5.0 * endRadius;
+        glm::dvec3 extraKnot = endNodePos + dist * orthogonal;
+
+        _points.push_back(extraKnot - parallell);
+        _points.push_back(extraKnot);
+        _points.push_back(extraKnot + parallell);
+    }
+
+    _points.push_back(end.position + 2.0 * endRadius * normalize(endDirection));
+    _points.push_back(end.position);
+}
+
+glm::dvec3 Bezier3Curve::valueAt(double t) {
+    return interpolation::piecewiseCubicBezier(t, _points);
+}
+
+// 
+Bezier4Curve::Bezier4Curve(CameraState& start, CameraState& end) {
+    // TODO: CALCULATE AND SET CONDITION BOOLS IN CURVE CONSTRUCTOR
+    glm::dvec3 startNodePos = sceneGraphNode(start.referenceNode)->worldPosition();
+    glm::dvec3 endNodePos =   sceneGraphNode(end.referenceNode)->worldPosition();
+    glm::dvec3 startDirection = start.position - startNodePos;
+    glm::dvec3 endDirection =   end.position - endNodePos;
+    double startRadius = sceneGraphNode(start.referenceNode)->boundingSphere();
+    double endRadius =   sceneGraphNode(end.referenceNode)->boundingSphere();
+
+    glm::dvec3 nodePosDiff = endNodePos - startNodePos;
+    
+
+    // Check if start or end node boundingspheres intersect vector between start and end state
+    glm::dvec3 posDiff = end.position - start.position;
+    double cosStartAngle = glm::dot(normalize(startDirection), normalize(nodePosDiff));
+    double cosEndAngle = glm::dot(normalize(endDirection), normalize(nodePosDiff));
+
+    double startNodeDistToVec = glm::length(
+        startDirection - helpers::vectorProjection(startDirection, posDiff)); 
+    bool TARGET_BEHIND_STARTNODE = glm::length(start.position - end.position) < glm::length(endNodePos - end.position);
+
+    double endNodeDistToVec = glm::length(
+        endDirection - helpers::vectorProjection(endDirection, posDiff));
+    bool TARGET_BEHIND_ENDNODE = glm::length(start.position - end.position) < glm::length(endNodePos - start.position);//endNodeDistToVec < endRadius;
+
+    // THOUGHT: is it more interesting to know if there is a 180 turn between start and end orientation?
+    // If both are behind it might look better to not zoom out!
+    double cosStartDir = glm::dot(normalize(startDirection), normalize(posDiff));
+    bool TARGET_IN_OPPOSITE_DIRECTION = cosStartAngle > 0.7;
+
+
+    // SET CONTROL POINTS
+    _points.push_back(start.position);
+    _points.push_back(start.position + 2.0 * startRadius * normalize(startDirection));
+
+    // Avoid collision with start node by adding an extra knot on the side of start node
+    if ( TARGET_BEHIND_STARTNODE )
+    {
+        glm::dvec3 parallell = helpers::vectorProjection(startDirection, posDiff);
+        glm::dvec3 orthogonal = normalize(startDirection - parallell);
+        //Point on the side of start node
+        double dist = 5.0 * startRadius;
+        glm::dvec3 extraKnot = startNodePos + dist * orthogonal;
+        
+        _points.push_back(extraKnot - normalize(parallell));
+        _points.push_back(extraKnot); 
+        _points.push_back(extraKnot + normalize(parallell));
+    }
+
+    // Reduce confusion by big rotation angle by looking from far away. 
+    if (TARGET_IN_OPPOSITE_DIRECTION && ! TARGET_BEHIND_ENDNODE) {
+        glm::dvec3 parallell = helpers::vectorProjection(startDirection, nodePosDiff);
+        glm::dvec3 orthogonal = normalize(startDirection - parallell);
+        // Distant middle point
+        double dist = length(nodePosDiff);
+        glm::dvec3 extraKnot = startNodePos - 0.5 * dist * parallell + 1.5 * dist * orthogonal;
+
+        _points.push_back(extraKnot - 0.3 * dist *  normalize(parallell));
+        _points.push_back(extraKnot);
+        _points.push_back(extraKnot + 0.3 * dist *  normalize(parallell));
+    }
+    
+    if (TARGET_BEHIND_ENDNODE)
+    {
+        glm::dvec3 parallell = helpers::vectorProjection(endDirection, posDiff);
+        glm::dvec3 orthogonal = normalize(endDirection - parallell);
+        //Point on the side of start node
+        double dist = 5.0 * endRadius;
+        glm::dvec3 extraKnot = endNodePos + dist * orthogonal;
+
+        _points.push_back(extraKnot - normalize(parallell));
+        _points.push_back(extraKnot);
+        _points.push_back(extraKnot + normalize(parallell));
+    }
+
+    _points.push_back(end.position + 2.0 * endRadius * normalize(endDirection));
+    _points.push_back(end.position);
+}
+
+
+  double tLookAt = helpers::shiftAndScale(t, 0.2, 0.8);
+    tLookAt = easingfunctions::cubicEaseInOut(tLookAt);
+
+    switch (_curveType) {
+    case CurveType::Linear2:
+    case CurveType::Bezier3:
+        return getLookAtRotation(
+            tLookAt, 
+            getPositionAt(t), 
+            global::navigationHandler.camera()->lookUpVectorWorldSpace()
+        );

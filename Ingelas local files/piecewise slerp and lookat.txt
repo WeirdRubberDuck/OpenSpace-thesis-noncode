@@ -1,0 +1,58 @@
+
+// Piecewise slerp using a list of t 
+const glm::dquat PathSegment::piecewiseSlerpRotation(double t, std::vector<double> ts) const {
+    if (ts.size() < 1)
+        LERROR("No orientation states provided for the curve");
+    if (t < 0.000001)
+        return _start.rotation;
+    if (1.0 - t < 0.000001)
+        return _end.rotation;
+
+    //vector::upper_bound not working :c
+
+    //todo dont use pointers..
+    // find nearest values lower and higher than t
+    std::vector<double>::iterator it = ts.begin();
+    while (*(it) < t) {
+        it++;
+    }
+    double t1 = *(it - 1);
+    double t2 = *it;
+    double tSegment = (t - t1) / (t2 - t1);
+
+    glm::dquat rot1,rot2;
+    
+    if (t1 < 0.0001)
+        rot1 = _start.rotation;
+    else
+        rot1 = getLookAt(t1);
+    
+    if (1.0 - t2 < 0.0001)
+        rot2 = _end.rotation;
+    else
+        rot2 = getLookAt(t2);
+   
+    // TODO: experiment with easing functions
+    tSegment = ghoul::quadraticEaseInOut(tSegment);
+    return glm::slerp(rot1, rot2, tSegment);
+
+}
+
+const glm::dquat PathSegment::getLookAt(double t) const {
+    //TODO: make threshold optional?
+    //If t < 0.5 look at start, t >= 0.5 look at end node  
+    if (t < 0.5) {
+        glm::dvec3 tPos = getPositionAt(t);
+        glm::dvec3 startNodePos = sceneGraphNode(_start.referenceNode)->worldPosition();
+        glm::dvec3 startUpVec = global::navigationHandler.camera()->lookUpVectorWorldSpace();
+        glm::dmat4 lookAtStartMat = glm::lookAt(tPos, startNodePos, startUpVec);
+       return glm::normalize(glm::inverse(glm::quat_cast(lookAtStartMat)));
+    }
+    else {
+        glm::dvec3 tPos = getPositionAt(t);
+        glm::dvec3 endNodePos = sceneGraphNode(_end.referenceNode)->worldPosition();
+        glm::dvec3 endUpVec = global::navigationHandler.camera()->lookUpVectorWorldSpace();
+        glm::dmat4 lookAtEndMat = glm::lookAt(tPos, endNodePos, endUpVec);
+        return glm::normalize(glm::inverse(glm::quat_cast(lookAtEndMat)));
+    }
+}

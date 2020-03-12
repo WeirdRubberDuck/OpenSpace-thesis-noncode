@@ -1,0 +1,11 @@
+ if (ZOOM_OUT) {
+        // MIDDLE: one knot and two control points parallell to target nodes
+        glm::dvec3 C = normalize(startDirection + endDirection);
+        glm::dvec3 CparAB = normalize(nodePosDiff) * glm::dot(C, normalize(nodePosDiff));
+        glm::dvec3 CortAB = normalize(C - CparAB);
+        double d = length(nodePosDiff);
+
+        _points.push_back(start.position + 1.5 * d * CortAB);
+        _points.push_back(start.position + 1.5 * d * CortAB + 0.5 * nodePosDiff);
+        _points.push_back(end.position + 1.5 * d * CortAB);
+    }
